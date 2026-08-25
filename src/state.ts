@@ -2,8 +2,10 @@ import { buildCardEntries, buildVariants } from "./cardModel";
 import { fetchSetCards, fetchSets } from "./scryfall";
 import {
   clearCounts,
+  loadCachedSetEntries,
   loadCounts,
   loadSelectedSets,
+  saveCachedSetEntries,
   saveCounts,
   saveSelectedSets,
 } from "./storage";
@@ -117,6 +119,15 @@ export class AppState {
     const existing = this.setCardData.get(code);
     if (existing && (existing.status === "loaded" || existing.status === "loading")) return;
 
+    // Scryfall only refreshes prices once a day and asks API consumers to
+    // cache for at least that long rather than refetch more often.
+    const cached = loadCachedSetEntries(code);
+    if (cached) {
+      this.setCardData.set(code, { entries: cached, variants: buildVariants(cached), status: "loaded" });
+      this.update();
+      return;
+    }
+
     this.setCardData.set(code, { entries: [], variants: [], status: "loading" });
     this.update();
 
@@ -125,6 +136,7 @@ export class AppState {
       const entries = buildCardEntries(cards);
       const variants = buildVariants(entries);
       this.setCardData.set(code, { entries, variants, status: "loaded" });
+      saveCachedSetEntries(code, entries);
     } catch (err) {
       this.setCardData.set(code, {
         entries: [],
