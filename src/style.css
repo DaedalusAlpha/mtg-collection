@@ -362,6 +362,18 @@ button {
   gap: 11px;
   padding: 10px 18px 10px 0;
   border-bottom: 1px solid #23233f;
+}
+
+.row-tap-area {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  flex: 1;
+  min-width: 0;
+}
+
+.row-tap-area.has-image {
+  cursor: pointer;
   -webkit-tap-highlight-color: rgba(74, 144, 217, 0.15);
 }
 
@@ -626,10 +638,6 @@ button {
 }
 
 /* Card image preview */
-
-.row.has-image {
-  cursor: pointer;
-}
 
 .image-modal {
   position: fixed;

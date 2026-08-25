@@ -118,15 +118,17 @@ export function renderChecklist(root: HTMLElement, app: AppState): void {
       : "";
 
     return `
-      <div class="row${entry.imageUrl ? " has-image" : ""}"${imageAttrs}>
-        <div class="row-stripe" style="background:${COLOR_STYLE[entry.color]}"></div>
-        <div class="row-main">
-          <div class="row-name">${escapeHtml(entry.name)}</div>
-          <div class="row-meta">
-            <span class="mana-row">${pips}</span>
-            <span class="dim">· #${escapeHtml(entry.collectorNumber)}</span>
-            <span class="rarity-badge" style="background:${rs.bg};color:${rs.fg}">${escapeHtml(entry.rarity)}</span>
-            ${v.foil ? `<span class="foil-tag">${foilStarSvg()}Foil</span>` : ""}
+      <div class="row">
+        <div class="row-tap-area${entry.imageUrl ? " has-image" : ""}"${imageAttrs}>
+          <div class="row-stripe" style="background:${COLOR_STYLE[entry.color]}"></div>
+          <div class="row-main">
+            <div class="row-name">${escapeHtml(entry.name)}</div>
+            <div class="row-meta">
+              <span class="mana-row">${pips}</span>
+              <span class="dim">· #${escapeHtml(entry.collectorNumber)}</span>
+              <span class="rarity-badge" style="background:${rs.bg};color:${rs.fg}">${escapeHtml(entry.rarity)}</span>
+              ${v.foil ? `<span class="foil-tag">${foilStarSvg()}Foil</span>` : ""}
+            </div>
           </div>
         </div>
         <div class="price-badge" style="background:${ps.bg};color:${ps.fg}">${priceLabel}</div>
@@ -198,9 +200,9 @@ export function renderChecklist(root: HTMLElement, app: AppState): void {
       return;
     }
 
-    const imageRow = target.closest<HTMLElement>(".row[data-image]");
-    if (imageRow) {
-      openPreview(imageRow.dataset.name ?? "", imageRow.dataset.image!);
+    const tapArea = target.closest<HTMLElement>(".row-tap-area[data-image]");
+    if (tapArea) {
+      openPreview(tapArea.dataset.name ?? "", tapArea.dataset.image!);
     }
   });
 }
