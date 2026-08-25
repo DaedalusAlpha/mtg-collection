@@ -154,6 +154,21 @@ export class AppState {
     return this.counts[setCode]?.[variantKey] ?? 0;
   }
 
+  /** Whether any card anywhere has a logged count > 0 — usable before card data loads. */
+  hasAnyLoggedCounts(): boolean {
+    return Object.values(this.counts).some((setCounts) =>
+      Object.values(setCounts).some((qty) => qty > 0),
+    );
+  }
+
+  totalLoggedCount(): number {
+    let total = 0;
+    for (const setCounts of Object.values(this.counts)) {
+      for (const qty of Object.values(setCounts)) total += qty;
+    }
+    return total;
+  }
+
   setCount(setCode: string, variantKey: string, value: number): void {
     const clamped = Math.max(0, value);
     if (!this.counts[setCode]) this.counts[setCode] = {};

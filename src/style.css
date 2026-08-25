@@ -40,6 +40,24 @@ button {
   padding: max(22px, env(safe-area-inset-top)) 18px 14px;
 }
 
+.header-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.reset-link {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: #9aa0b4;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 2px;
+}
+
 .header-row {
   flex-shrink: 0;
   display: flex;

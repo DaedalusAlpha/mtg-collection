@@ -7,10 +7,15 @@ let searchQuery = "";
 let listScrollTop = 0;
 
 export function renderSetPicker(root: HTMLElement, app: AppState): void {
+  const hasProgress = app.selectedSetCodes.length > 0 || app.hasAnyLoggedCounts();
+
   root.innerHTML = `
     <div class="screen">
       <header class="header">
-        <h1>New Checklist</h1>
+        <div class="header-title-row">
+          <h1>New Checklist</h1>
+          ${hasProgress ? `<button type="button" class="reset-link" id="reset-btn">Reset</button>` : ""}
+        </div>
         <p class="subtitle">Pick the sets you want to log cards for</p>
         <div class="search-box">
           ${searchIconSvg()}
@@ -85,6 +90,17 @@ export function renderSetPicker(root: HTMLElement, app: AppState): void {
   });
 
   buildBtn.addEventListener("click", () => app.goToChecklist());
+
+  root.querySelector("#reset-btn")?.addEventListener("click", () => {
+    const logged = app.totalLoggedCount();
+    if (logged > 0) {
+      const ok = window.confirm(
+        `This clears ${logged} logged card${logged === 1 ? "" : "s"} and your selected sets. Continue?`,
+      );
+      if (!ok) return;
+    }
+    app.resetForNewChecklist();
+  });
 }
 
 function setRowHtml(s: ScryfallSet, selected: boolean): string {
