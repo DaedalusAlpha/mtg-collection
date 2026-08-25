@@ -71,13 +71,17 @@ export function renderExport(root: HTMLElement, app: AppState): void {
   });
 
   root.querySelector("#deckbox-btn")!.addEventListener("click", () => {
-    triggerDownload(`Deckbox_Import_${dateStamp()}.csv`, buildDeckboxCsv(allExportLines(app)));
-    app.markExportDone("deckbox");
+    void (async () => {
+      await triggerDownload(`Deckbox_Import_${dateStamp()}.csv`, buildDeckboxCsv(allExportLines(app)));
+      app.markExportDone("deckbox");
+    })();
   });
 
   root.querySelector("#manabox-btn")!.addEventListener("click", () => {
-    triggerDownload(`Manabox_Import_${dateStamp()}.csv`, buildManaboxCsv(allExportLines(app)));
-    app.markExportDone("manabox");
+    void (async () => {
+      await triggerDownload(`Manabox_Import_${dateStamp()}.csv`, buildManaboxCsv(allExportLines(app)));
+      app.markExportDone("manabox");
+    })();
   });
 
   root.querySelector("#new-checklist-btn")!.addEventListener("click", () => {
