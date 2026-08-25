@@ -57,6 +57,14 @@ export function renderChecklist(root: HTMLElement, app: AppState): void {
         </div>
         <button class="btn-primary ${totals.cards === 0 ? "disabled" : ""}" id="export-btn">Review &amp; Export</button>
       </footer>
+
+      <div class="image-modal" id="image-modal" hidden>
+        <button class="image-modal-backdrop" id="image-modal-close" aria-label="Close"></button>
+        <figure class="image-modal-figure">
+          <img class="image-modal-img" id="image-modal-img" alt="">
+          <figcaption class="image-modal-caption" id="image-modal-caption"></figcaption>
+        </figure>
+      </div>
     </div>
   `;
 
@@ -105,8 +113,12 @@ export function renderChecklist(root: HTMLElement, app: AppState): void {
       )
       .join("");
 
+    const imageAttrs = entry.imageUrl
+      ? ` data-image="${escapeHtml(entry.imageUrl)}" data-name="${escapeHtml(entry.name)}"`
+      : "";
+
     return `
-      <div class="row">
+      <div class="row${entry.imageUrl ? " has-image" : ""}"${imageAttrs}>
         <div class="row-stripe" style="background:${COLOR_STYLE[entry.color]}"></div>
         <div class="row-main">
           <div class="row-name">${escapeHtml(entry.name)}</div>
@@ -156,12 +168,40 @@ export function renderChecklist(root: HTMLElement, app: AppState): void {
     );
   });
 
+  const modalEl = root.querySelector<HTMLDivElement>("#image-modal")!;
+  const modalImg = root.querySelector<HTMLImageElement>("#image-modal-img")!;
+  const modalCaption = root.querySelector<HTMLElement>("#image-modal-caption")!;
+
+  function openPreview(name: string, imageUrl: string): void {
+    modalImg.src = imageUrl;
+    modalImg.alt = name;
+    modalCaption.textContent = name;
+    modalEl.hidden = false;
+  }
+
+  function closePreview(): void {
+    modalEl.hidden = true;
+    modalImg.src = "";
+  }
+
+  modalEl.addEventListener("click", closePreview);
+  root.querySelector("#image-modal-close")!.addEventListener("click", closePreview);
+
   rowListEl.addEventListener("click", (event) => {
-    const btn = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-step]");
-    if (!btn) return;
-    const key = btn.dataset.key!;
-    const delta = Number(btn.dataset.step);
-    app.setCount(activeCode, key, app.getCount(activeCode, key) + delta);
+    const target = event.target as HTMLElement;
+
+    const stepBtn = target.closest<HTMLButtonElement>("[data-step]");
+    if (stepBtn) {
+      const key = stepBtn.dataset.key!;
+      const delta = Number(stepBtn.dataset.step);
+      app.setCount(activeCode, key, app.getCount(activeCode, key) + delta);
+      return;
+    }
+
+    const imageRow = target.closest<HTMLElement>(".row[data-image]");
+    if (imageRow) {
+      openPreview(imageRow.dataset.name ?? "", imageRow.dataset.image!);
+    }
   });
 }
 

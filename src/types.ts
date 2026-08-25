@@ -12,10 +12,20 @@ export interface ScryfallSet {
   icon_svg_uri: string;
 }
 
+export interface ScryfallImageUris {
+  small: string;
+  normal: string;
+  large: string;
+  png: string;
+  art_crop: string;
+  border_crop: string;
+}
+
 export interface ScryfallCardFace {
   mana_cost?: string;
   colors?: string[];
   type_line?: string;
+  image_uris?: ScryfallImageUris;
 }
 
 export interface ScryfallCard {
@@ -29,6 +39,7 @@ export interface ScryfallCard {
   type_line?: string;
   foil: boolean;
   card_faces?: ScryfallCardFace[];
+  image_uris?: ScryfallImageUris;
   prices?: {
     usd?: string | null;
     usd_foil?: string | null;
@@ -52,6 +63,7 @@ export interface CardEntry {
   nonfoilPrice: number | null;
   foilPrice: number | null;
   foilAvailable: boolean;
+  imageUrl: string | null;
 }
 
 export interface RowVariant {

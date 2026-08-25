@@ -362,6 +362,7 @@ button {
   gap: 11px;
   padding: 10px 18px 10px 0;
   border-bottom: 1px solid #23233f;
+  -webkit-tap-highlight-color: rgba(74, 144, 217, 0.15);
 }
 
 .row-stripe {
@@ -622,4 +623,61 @@ button {
   background: transparent;
   border-color: #cf6d17;
   color: #f5b878;
+}
+
+/* Card image preview */
+
+.row.has-image {
+  cursor: pointer;
+}
+
+.image-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(10, 10, 20, 0.85);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+.image-modal[hidden] {
+  display: none;
+}
+
+.image-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.image-modal-figure {
+  position: relative;
+  margin: 0;
+  max-width: 90vw;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.image-modal-img {
+  max-width: 100%;
+  max-height: 80vh;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.image-modal-caption {
+  color: #eee;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
 }

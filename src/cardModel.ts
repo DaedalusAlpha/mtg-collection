@@ -76,6 +76,12 @@ function getManaCostString(card: ScryfallCard): string {
   return card.card_faces?.[0]?.mana_cost || card.mana_cost || "";
 }
 
+/** Full card image (front face for double-faced cards), or null if Scryfall has none indexed. */
+function getImageUrl(card: ScryfallCard): string | null {
+  const uris = card.card_faces?.[0]?.image_uris ?? card.image_uris;
+  return uris?.large ?? null;
+}
+
 /**
  * Parse a Scryfall mana cost string (e.g. "{2}{W}{W}") into pip badges.
  * Hybrid/Phyrexian symbols ("{W/U}", "{W/P}") get a neutral pip showing the
@@ -120,6 +126,7 @@ export function buildCardEntries(cards: ScryfallCard[]): CardEntry[] {
     nonfoilPrice: toPrice(card.prices?.usd),
     foilPrice: toPrice(card.prices?.usd_foil),
     foilAvailable: card.foil === true,
+    imageUrl: getImageUrl(card),
   }));
 
   entries.sort((a, b) => {
