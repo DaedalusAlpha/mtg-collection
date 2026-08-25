@@ -5,6 +5,7 @@ import {
   loadCachedSetEntries,
   loadCounts,
   loadSelectedSets,
+  pruneStaleSetCaches,
   saveCachedSetEntries,
   saveCounts,
   saveSelectedSets,
@@ -67,6 +68,7 @@ export class AppState {
   }
 
   async init(): Promise<void> {
+    pruneStaleSetCaches();
     try {
       this.allSets = await fetchSets();
       this.setsStatus = "loaded";

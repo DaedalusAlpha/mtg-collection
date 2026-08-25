@@ -2,7 +2,13 @@ import type { CardEntry, CountsStore } from "./types";
 
 const COUNTS_KEY = "mtg-checklist:counts:v1";
 const SELECTED_SETS_KEY = "mtg-checklist:selected-sets:v1";
-const SET_CACHE_PREFIX = "mtg-checklist:set-cache:v1:";
+
+// Bump this version whenever CardEntry's shape changes — old cached data
+// won't have new fields (e.g. adding `imageUrl` left previously-cached sets
+// without images for up to 24h), so a version bump invalidates it instantly
+// instead of waiting out the TTL.
+const SET_CACHE_VERSION = "v2";
+const SET_CACHE_PREFIX = `mtg-checklist:set-cache:${SET_CACHE_VERSION}:`;
 
 // Scryfall only refreshes prices once a day, and asks API consumers to
 // cache data for at least 24h rather than refetch more often than that.
@@ -31,6 +37,19 @@ export function saveCachedSetEntries(code: string, entries: CardEntry[]): void {
     localStorage.setItem(SET_CACHE_PREFIX + code, JSON.stringify(cached));
   } catch {
     // Storage full or unavailable — this set just won't be cached.
+  }
+}
+
+/** Remove set-cache entries left behind by an older SET_CACHE_VERSION. */
+export function pruneStaleSetCaches(): void {
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith("mtg-checklist:set-cache:") && !key.startsWith(SET_CACHE_PREFIX)) {
+        localStorage.removeItem(key);
+      }
+    }
+  } catch {
+    // ignore
   }
 }
 
