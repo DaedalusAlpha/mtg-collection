@@ -7,8 +7,15 @@ import type { CardEntry, ColorCategory, FoilFilter, RowVariant } from "../types"
 
 let listScrollTop = 0;
 let lastActiveTab = -1;
+let focusedIndex = 0;
+let activeKeydownHandler: ((event: KeyboardEvent) => void) | null = null;
 
 export function renderChecklist(root: HTMLElement, app: AppState): void {
+  if (activeKeydownHandler) {
+    window.removeEventListener("keydown", activeKeydownHandler);
+    activeKeydownHandler = null;
+  }
+
   const codes = app.selectedSetCodes;
   if (codes.length === 0) {
     app.goToPicker();
@@ -17,6 +24,7 @@ export function renderChecklist(root: HTMLElement, app: AppState): void {
 
   if (app.activeTabIndex !== lastActiveTab) {
     listScrollTop = 0;
+    focusedIndex = 0;
     lastActiveTab = app.activeTabIndex;
   }
 
@@ -46,7 +54,16 @@ export function renderChecklist(root: HTMLElement, app: AppState): void {
         ${COLOR_FILTER_KEYS.map((k) => colorPipHtml(k, app.filters.colorFilters[k])).join("")}
       </div>
 
-      <div class="visible-label" id="visible-label"></div>
+      <div class="row-toolbar">
+        <div class="kbd-hint-bar">
+          <span><kbd>&uarr;</kbd><kbd>&darr;</kbd> Move</span>
+          <span><kbd>+</kbd><kbd>&minus;</kbd> Count</span>
+          <span><kbd>0&ndash;9</kbd> Set count</span>
+          <span><kbd>Enter</kbd> Image</span>
+          <span><kbd>[</kbd><kbd>]</kbd> Switch set</span>
+        </div>
+        <div class="visible-label" id="visible-label"></div>
+      </div>
 
       <div class="row-list" id="row-list"></div>
 
@@ -71,6 +88,8 @@ export function renderChecklist(root: HTMLElement, app: AppState): void {
   const rowListEl = root.querySelector<HTMLDivElement>("#row-list")!;
   const visibleLabelEl = root.querySelector<HTMLDivElement>("#visible-label")!;
 
+  let currentVisible: RowVariant[] = [];
+
   function passesFilters(v: RowVariant, entry: CardEntry): boolean {
     const f = app.filters;
     if (f.foilFilter === "foil" && !v.foil) return false;
@@ -80,25 +99,44 @@ export function renderChecklist(root: HTMLElement, app: AppState): void {
     return true;
   }
 
+  function applyFocusVisual(): void {
+    Array.from(rowListEl.children).forEach((child, i) => {
+      child.classList.toggle("row-focused", i === focusedIndex);
+    });
+  }
+
+  function moveFocus(newIndex: number): void {
+    if (currentVisible.length === 0) return;
+    focusedIndex = Math.min(Math.max(newIndex, 0), currentVisible.length - 1);
+    applyFocusVisual();
+    (rowListEl.children[focusedIndex] as HTMLElement | undefined)?.scrollIntoView({
+      block: "nearest",
+    });
+  }
+
   function renderRows(): void {
     if (!data || data.status === "loading") {
       rowListEl.innerHTML = `<p class="status-msg">Loading ${escapeHtml(activeCode.toUpperCase())}…</p>`;
       visibleLabelEl.textContent = "";
+      currentVisible = [];
       return;
     }
     if (data.status === "error") {
       rowListEl.innerHTML = `<p class="status-msg error">Couldn't load this set.${data.error ? ` ${escapeHtml(data.error)}` : ""}</p>`;
       visibleLabelEl.textContent = "";
+      currentVisible = [];
       return;
     }
 
     const allRows = data.variants;
-    const visible = allRows.filter((v) => passesFilters(v, data.entries[v.cardIndex]));
-    visibleLabelEl.textContent = `${visible.length} / ${allRows.length} rows`;
-    rowListEl.innerHTML = visible.length
-      ? visible.map((v) => rowHtml(v, data.entries[v.cardIndex])).join("")
+    currentVisible = allRows.filter((v) => passesFilters(v, data.entries[v.cardIndex]));
+    visibleLabelEl.textContent = `${currentVisible.length} / ${allRows.length} rows`;
+    rowListEl.innerHTML = currentVisible.length
+      ? currentVisible.map((v) => rowHtml(v, data.entries[v.cardIndex])).join("")
       : `<p class="status-msg">No cards match the current filters.</p>`;
     rowListEl.scrollTop = listScrollTop;
+    if (focusedIndex >= currentVisible.length) focusedIndex = Math.max(0, currentVisible.length - 1);
+    applyFocusVisual();
   }
 
   function rowHtml(v: RowVariant, entry: CardEntry): string {
@@ -191,6 +229,14 @@ export function renderChecklist(root: HTMLElement, app: AppState): void {
 
   rowListEl.addEventListener("click", (event) => {
     const target = event.target as HTMLElement;
+    const rowEl = target.closest<HTMLElement>(".row");
+    if (rowEl) {
+      const clickedIndex = Array.from(rowListEl.children).indexOf(rowEl);
+      if (clickedIndex !== -1) {
+        focusedIndex = clickedIndex;
+        applyFocusVisual();
+      }
+    }
 
     const stepBtn = target.closest<HTMLButtonElement>("[data-step]");
     if (stepBtn) {
@@ -205,6 +251,79 @@ export function renderChecklist(root: HTMLElement, app: AppState): void {
       openPreview(tapArea.dataset.name ?? "", tapArea.dataset.image!);
     }
   });
+
+  function adjustFocusedCount(delta: number): void {
+    const row = currentVisible[focusedIndex];
+    if (!row) return;
+    app.setCount(activeCode, row.key, app.getCount(activeCode, row.key) + delta);
+  }
+
+  function handleKeydown(event: KeyboardEvent): void {
+    if (app.view !== "checklist") return; // stale listener from a screen we've since left
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    const target = event.target as HTMLElement;
+    if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return;
+
+    switch (event.key) {
+      case "ArrowDown":
+        event.preventDefault();
+        moveFocus(focusedIndex + 1);
+        break;
+      case "ArrowUp":
+        event.preventDefault();
+        moveFocus(focusedIndex - 1);
+        break;
+      case "+":
+      case "=":
+        event.preventDefault();
+        adjustFocusedCount(1);
+        break;
+      case "-":
+      case "_":
+        event.preventDefault();
+        adjustFocusedCount(-1);
+        break;
+      case "Enter": {
+        const row = currentVisible[focusedIndex];
+        if (!row) break;
+        const entry = data?.entries[row.cardIndex];
+        if (entry?.imageUrl) {
+          event.preventDefault();
+          openPreview(entry.name, entry.imageUrl);
+        }
+        break;
+      }
+      case "Escape":
+        if (!modalEl.hidden) {
+          event.preventDefault();
+          closePreview();
+        }
+        break;
+      case "[":
+        if (app.activeTabIndex > 0) {
+          event.preventDefault();
+          app.setActiveTab(app.activeTabIndex - 1);
+        }
+        break;
+      case "]":
+        if (app.activeTabIndex < codes.length - 1) {
+          event.preventDefault();
+          app.setActiveTab(app.activeTabIndex + 1);
+        }
+        break;
+      default:
+        if (/^[0-9]$/.test(event.key)) {
+          const row = currentVisible[focusedIndex];
+          if (row) {
+            event.preventDefault();
+            app.setCount(activeCode, row.key, Number(event.key));
+          }
+        }
+    }
+  }
+
+  activeKeydownHandler = handleKeydown;
+  window.addEventListener("keydown", activeKeydownHandler);
 }
 
 function tabChipHtml(code: string, index: number, active: boolean, hasCounts: boolean): string {
