@@ -57,7 +57,7 @@ export function renderChecklist(root: HTMLElement, app: AppState): void {
       <div class="row-toolbar">
         <div class="kbd-hint-bar">
           <span><kbd>&uarr;</kbd><kbd>&darr;</kbd> Move</span>
-          <span><kbd>+</kbd><kbd>&minus;</kbd> Count</span>
+          <span><kbd>W</kbd>/<kbd>+</kbd> <kbd>S</kbd>/<kbd>&minus;</kbd> Count</span>
           <span><kbd>0&ndash;9</kbd> Set count</span>
           <span><kbd>Enter</kbd> Image</span>
           <span><kbd>[</kbd><kbd>]</kbd> Switch set</span>
@@ -275,11 +275,15 @@ export function renderChecklist(root: HTMLElement, app: AppState): void {
         break;
       case "+":
       case "=":
+      case "w":
+      case "W":
         event.preventDefault();
         adjustFocusedCount(1);
         break;
       case "-":
       case "_":
+      case "s":
+      case "S":
         event.preventDefault();
         adjustFocusedCount(-1);
         break;
