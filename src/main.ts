@@ -1,6 +1,5 @@
 import "./style.css";
 import { AppState } from "./state";
-import { installViewportDebug } from "./viewportDebug";
 import { renderChecklist } from "./views/checklist";
 import { renderExport } from "./views/exportView";
 import { renderSetPicker } from "./views/setPicker";
@@ -28,4 +27,3 @@ function render(): void {
 app.onRender(render);
 render();
 void app.init();
-installViewportDebug(); // TEMPORARY — see viewportDebug.ts
