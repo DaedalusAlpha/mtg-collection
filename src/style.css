@@ -4,6 +4,10 @@
 
 :root {
   color-scheme: dark;
+  /* Space a header needs at the top. In the iOS home-screen app the page runs under a
+     translucent status bar, and iOS blurs content just below it, so clear the bar by an
+     extra margin. The inset is 0 in a normal browser tab, so the 22px floor applies there. */
+  --header-top: max(22px, calc(env(safe-area-inset-top) + 14px));
 }
 
 html,
@@ -37,7 +41,7 @@ button {
 
 .header {
   flex-shrink: 0;
-  padding: max(22px, env(safe-area-inset-top)) 18px 14px;
+  padding: var(--header-top) 18px 14px;
 }
 
 .header-title-row {
@@ -63,7 +67,7 @@ button {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: max(18px, env(safe-area-inset-top)) 18px 10px;
+  padding: var(--header-top) 18px 10px;
 }
 
 .header-row h1 {
