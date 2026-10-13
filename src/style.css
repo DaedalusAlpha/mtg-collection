@@ -24,6 +24,12 @@ button {
   font-family: inherit;
 }
 
+/* Rapid taps (e.g. the count steppers) would otherwise trigger iOS double-tap zoom. */
+button,
+.row-tap-area {
+  touch-action: manipulation;
+}
+
 /* Pinned to the viewport rather than sized with 100dvh: in the iOS home-screen app,
    100dvh can come out taller than the visible area, which pushed the footer off-screen. */
 .screen {
@@ -855,7 +861,6 @@ button {
 .preview-stepper {
   display: none;
   pointer-events: auto; /* the figure ignores taps so they fall through to the backdrop */
-  touch-action: manipulation; /* no double-tap zoom on quick repeated taps */
 }
 
 .preview-stepper .step-btn {
