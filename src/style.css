@@ -296,6 +296,20 @@ button {
   padding-top: 8px;
 }
 
+.chip-row-wrap {
+  flex-wrap: wrap;
+}
+
+.chip-more {
+  border-style: dashed;
+}
+
+.chip-more.has-selection {
+  border-style: solid;
+  border-color: #4a90d9;
+  color: #4a90d9;
+}
+
 .scroll-x {
   overflow-x: auto;
   scrollbar-width: none;
@@ -324,23 +338,80 @@ button {
   color: #fff;
 }
 
-.tab-chip {
+/* Set switcher (checklist screen): a set-picker row that opens a dropdown of the selected sets */
+
+.set-switcher {
   position: relative;
-  border-radius: 20px;
-  padding: 8px 16px;
-  font-size: 0.85rem;
-  font-weight: 700;
+  flex-shrink: 0;
+  margin: 0 18px 10px;
 }
 
-.tab-chip .dot {
+.set-switcher-btn {
+  border: 1px solid #3a3f5c;
+  border-radius: 12px;
+  padding: 8px 12px;
+}
+
+.set-switcher-btn:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.set-switcher.open .set-switcher-btn {
+  border-color: #4a90d9;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.set-switcher-count {
+  font-size: 0.78rem;
+  color: #8890a6;
+}
+
+.set-switcher-caret {
+  display: flex;
+  color: #9aa0b4;
+  transition: transform 0.15s;
+}
+
+.set-switcher.open .set-switcher-caret {
+  transform: rotate(180deg);
+}
+
+.set-switcher-menu {
+  display: none;
   position: absolute;
-  top: -2px;
-  right: -2px;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  max-height: min(60vh, 420px);
+  overflow-y: auto;
+  background: #1a1a2e;
+  border: 1px solid #4a90d9;
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.45);
+}
+
+.set-switcher.open .set-switcher-menu {
+  display: block;
+}
+
+.set-switcher-option {
+  padding: 10px 12px;
+}
+
+.set-switcher-option:last-child {
+  border-bottom: none;
+}
+
+.set-switcher-option .dot {
   width: 9px;
   height: 9px;
+  flex-shrink: 0;
   border-radius: 50%;
   background: #4a90d9;
-  border: 2px solid #1a1a2e;
 }
 
 .pip {
@@ -755,4 +826,56 @@ button {
   font-size: 0.9rem;
   font-weight: 600;
   text-align: center;
+}
+
+.image-modal-caption .foil-tag {
+  font-size: 0.8rem;
+  margin-left: 4px;
+}
+
+.preview-count {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 9px;
+  border-radius: 10px;
+  background: #23233f;
+  color: #8890a6;
+  font-weight: 700;
+}
+
+.preview-count.active {
+  background: #1a3a5c;
+  color: #7eb8f7;
+}
+
+/* −/+ under the preview caption, touch screens only (desktop uses ←/→). */
+.preview-stepper {
+  display: none;
+  pointer-events: auto; /* the figure ignores taps so they fall through to the backdrop */
+  touch-action: manipulation; /* no double-tap zoom on quick repeated taps */
+}
+
+.preview-stepper .step-btn {
+  width: 40px;
+  height: 40px;
+}
+
+.preview-stepper .step-count {
+  width: 32px;
+  font-size: 1rem;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .preview-stepper {
+    display: flex;
+  }
+
+  /* The stepper shows the count, so drop the duplicate badge from the caption. */
+  .image-modal-caption .preview-count {
+    display: none;
+  }
+
+  .image-modal-img {
+    max-height: calc(80vh - 50px);
+  }
 }

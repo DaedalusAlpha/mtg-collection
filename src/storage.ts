@@ -2,6 +2,7 @@ import type { CardEntry, CountsStore } from "./types";
 
 const COUNTS_KEY = "mtg-checklist:counts:v1";
 const SELECTED_SETS_KEY = "mtg-checklist:selected-sets:v1";
+const SET_TYPE_FILTER_KEY = "mtg-checklist:set-type-filter:v1";
 
 // Bump this version whenever CardEntry's shape changes — old cached data
 // won't have new fields (e.g. adding `imageUrl` left previously-cached sets
@@ -90,6 +91,23 @@ export function loadSelectedSets(): string[] {
 export function saveSelectedSets(codes: string[]): void {
   try {
     localStorage.setItem(SELECTED_SETS_KEY, JSON.stringify(codes));
+  } catch {
+    // ignore
+  }
+}
+
+export function loadSetTypeFilter(): string[] {
+  try {
+    const raw = localStorage.getItem(SET_TYPE_FILTER_KEY);
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveSetTypeFilter(types: string[]): void {
+  try {
+    localStorage.setItem(SET_TYPE_FILTER_KEY, JSON.stringify(types));
   } catch {
     // ignore
   }

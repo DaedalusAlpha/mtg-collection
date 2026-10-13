@@ -10,6 +10,10 @@ export function chevronDownSvg(rotated: boolean): string {
   return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(${rotated ? 90 : 0}deg);transition:transform .15s"><polyline points="9 6 15 12 9 18"></polyline></svg>`;
 }
 
+export function caretDownSvg(): string {
+  return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+}
+
 export function checkIconSvg(): string {
   return `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
 }

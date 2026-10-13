@@ -200,6 +200,12 @@ export class AppState {
     this.update();
   }
 
+  /** Turn every color filter on or off at once. */
+  setAllColorFilters(on: boolean): void {
+    for (const key of COLOR_FILTER_KEYS) this.filters.colorFilters[key] = on;
+    this.update();
+  }
+
   totalAcrossAllSets(): { cards: number; value: number } {
     let cards = 0;
     let value = 0;

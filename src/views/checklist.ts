@@ -1,6 +1,6 @@
 import { COLOR_FG, COLOR_STYLE, parseManaCost, priceTier, rarityStyle } from "../cardModel";
 import { escapeHtml } from "../dom";
-import { chevronLeftSvg, foilStarSvg } from "../icons";
+import { caretDownSvg, chevronLeftSvg, foilStarSvg } from "../icons";
 import type { AppState } from "../state";
 import { COLOR_FILTER_KEYS } from "../types";
 import type { CardEntry, ColorCategory, FoilFilter, RowVariant } from "../types";
@@ -8,6 +8,9 @@ import type { CardEntry, ColorCategory, FoilFilter, RowVariant } from "../types"
 let listScrollTop = 0;
 let lastActiveTab = -1;
 let focusedIndex = 0;
+let setMenuOpen = false;
+// Kept across re-renders so the preview stays up while ←/→ change the previewed card's count.
+let previewOpen = false;
 let activeKeydownHandler: ((event: KeyboardEvent) => void) | null = null;
 
 export function renderChecklist(root: HTMLElement, app: AppState): void {
@@ -26,6 +29,7 @@ export function renderChecklist(root: HTMLElement, app: AppState): void {
     listScrollTop = 0;
     focusedIndex = 0;
     lastActiveTab = app.activeTabIndex;
+    previewOpen = false;
   }
 
   const activeCode = codes[app.activeTabIndex];
@@ -39,9 +43,7 @@ export function renderChecklist(root: HTMLElement, app: AppState): void {
         <h1>Checklists</h1>
       </header>
 
-      <div class="chip-row scroll-x" id="tab-bar">
-        ${codes.map((code, i) => tabChipHtml(code, i, i === app.activeTabIndex, app.hasAnyCounts(code))).join("")}
-      </div>
+      ${setSwitcherHtml(app)}
 
       <div class="chip-row scroll-x">
         ${foilChipHtml("all", "All", app.filters.foilFilter)}
@@ -52,6 +54,11 @@ export function renderChecklist(root: HTMLElement, app: AppState): void {
 
       <div class="chip-row scroll-x">
         ${COLOR_FILTER_KEYS.map((k) => colorPipHtml(k, app.filters.colorFilters[k])).join("")}
+        ${
+          COLOR_FILTER_KEYS.some((k) => app.filters.colorFilters[k])
+            ? `<button type="button" class="chip" id="color-all-btn" data-on="false">Clear</button>`
+            : `<button type="button" class="chip" id="color-all-btn" data-on="true">All</button>`
+        }
       </div>
 
       <div class="row-toolbar">
@@ -80,6 +87,11 @@ export function renderChecklist(root: HTMLElement, app: AppState): void {
         <figure class="image-modal-figure">
           <img class="image-modal-img" id="image-modal-img" alt="">
           <figcaption class="image-modal-caption" id="image-modal-caption"></figcaption>
+          <div class="stepper preview-stepper" id="preview-stepper">
+            <button type="button" class="step-btn" data-preview-step="-1" aria-label="Decrease count">−</button>
+            <div class="step-count" id="preview-step-count">0</div>
+            <button type="button" class="step-btn" data-preview-step="1" aria-label="Increase count">+</button>
+          </div>
         </figure>
       </div>
     </div>
@@ -152,7 +164,7 @@ export function renderChecklist(root: HTMLElement, app: AppState): void {
       .join("");
 
     const imageAttrs = entry.imageUrl
-      ? ` data-image="${escapeHtml(entry.imageUrl)}" data-name="${escapeHtml(entry.name)}"`
+      ? ` data-image="${escapeHtml(entry.imageUrl)}" data-name="${escapeHtml(entry.name)}"${v.foil ? " data-foil" : ""}`
       : "";
 
     return `
@@ -191,9 +203,29 @@ export function renderChecklist(root: HTMLElement, app: AppState): void {
     if (totals.cards > 0) app.goToExport();
   });
 
-  root.querySelector("#tab-bar")!.addEventListener("click", (event) => {
-    const btn = (event.target as HTMLElement).closest<HTMLElement>("[data-tab-index]");
-    if (btn) app.setActiveTab(Number(btn.dataset.tabIndex));
+  const switcherEl = root.querySelector<HTMLDivElement>("#set-switcher")!;
+
+  function setSwitcherOpen(open: boolean): void {
+    setMenuOpen = open;
+    switcherEl.classList.toggle("open", open);
+    switcherEl.querySelector("#set-switcher-btn")?.setAttribute("aria-expanded", String(open));
+  }
+
+  switcherEl.addEventListener("click", (event) => {
+    const target = event.target as HTMLElement;
+    const option = target.closest<HTMLElement>("[data-tab-index]");
+    if (option) {
+      setMenuOpen = false;
+      app.setActiveTab(Number(option.dataset.tabIndex));
+      return;
+    }
+    if (target.closest("#set-switcher-btn") && codes.length > 1) setSwitcherOpen(!setMenuOpen);
+  });
+
+  // Close the menu on any click outside it. The .screen element is rebuilt each render,
+  // so this listener goes away with it.
+  root.querySelector(".screen")!.addEventListener("click", (event) => {
+    if (setMenuOpen && !switcherEl.contains(event.target as Node)) setSwitcherOpen(false);
   });
 
   root.querySelectorAll<HTMLElement>("[data-foil-filter]").forEach((btn) => {
@@ -208,23 +240,53 @@ export function renderChecklist(root: HTMLElement, app: AppState): void {
     );
   });
 
+  root.querySelector<HTMLElement>("#color-all-btn")!.addEventListener("click", (event) => {
+    app.setAllColorFilters((event.currentTarget as HTMLElement).dataset.on === "true");
+  });
+
   const modalEl = root.querySelector<HTMLDivElement>("#image-modal")!;
   const modalImg = root.querySelector<HTMLImageElement>("#image-modal-img")!;
   const modalCaption = root.querySelector<HTMLElement>("#image-modal-caption")!;
+  const modalStepCount = root.querySelector<HTMLElement>("#preview-step-count")!;
 
-  function openPreview(name: string, imageUrl: string): void {
-    modalImg.src = imageUrl;
-    modalImg.alt = name;
-    modalCaption.textContent = name;
+  /** Show the focused row's image, or close the preview if that card has none. */
+  function previewFocusedRow(): void {
+    const row = currentVisible[focusedIndex];
+    const entry = row && data?.entries[row.cardIndex];
+    if (!row || !entry?.imageUrl) {
+      closePreview();
+      return;
+    }
+    const count = app.getCount(activeCode, row.key);
+    if (modalImg.getAttribute("src") !== entry.imageUrl) modalImg.src = entry.imageUrl;
+    modalImg.alt = row.foil ? `${entry.name} (foil)` : entry.name;
+    // Foil and non-foil share an image, so the caption is the only way to tell them apart.
+    modalCaption.innerHTML = `
+      ${escapeHtml(entry.name)}
+      ${row.foil ? `<span class="foil-tag">${foilStarSvg()}Foil</span>` : ""}
+      <span class="preview-count ${count > 0 ? "active" : ""}">&times;${count}</span>
+    `;
+    modalStepCount.textContent = String(count);
+    modalStepCount.classList.toggle("active", count > 0);
     modalEl.hidden = false;
+    previewOpen = true;
   }
 
   function closePreview(): void {
     modalEl.hidden = true;
     modalImg.src = "";
+    previewOpen = false;
   }
 
-  modalEl.addEventListener("click", closePreview);
+  // A count change re-renders the whole screen; reopen the preview so ←/→ can adjust it in place.
+  if (previewOpen) previewFocusedRow();
+
+  modalEl.addEventListener("click", (event) => {
+    // The −/+ stepper (touch screens only) adjusts the count; any other tap closes the preview.
+    const stepBtn = (event.target as HTMLElement).closest<HTMLElement>("[data-preview-step]");
+    if (stepBtn) adjustFocusedCount(Number(stepBtn.dataset.previewStep));
+    else if (!(event.target as HTMLElement).closest("#preview-stepper")) closePreview();
+  });
   root.querySelector("#image-modal-close")!.addEventListener("click", closePreview);
 
   rowListEl.addEventListener("click", (event) => {
@@ -246,10 +308,8 @@ export function renderChecklist(root: HTMLElement, app: AppState): void {
       return;
     }
 
-    const tapArea = target.closest<HTMLElement>(".row-tap-area[data-image]");
-    if (tapArea) {
-      openPreview(tapArea.dataset.name ?? "", tapArea.dataset.image!);
-    }
+    // The tapped row was just focused above, so preview the focused row.
+    if (target.closest(".row-tap-area[data-image]")) previewFocusedRow();
   });
 
   function adjustFocusedCount(delta: number): void {
@@ -268,10 +328,12 @@ export function renderChecklist(root: HTMLElement, app: AppState): void {
       case "ArrowDown":
         event.preventDefault();
         moveFocus(focusedIndex + 1);
+        if (previewOpen) previewFocusedRow();
         break;
       case "ArrowUp":
         event.preventDefault();
         moveFocus(focusedIndex - 1);
+        if (previewOpen) previewFocusedRow();
         break;
       case "ArrowRight":
         event.preventDefault();
@@ -282,19 +344,27 @@ export function renderChecklist(root: HTMLElement, app: AppState): void {
         adjustFocusedCount(-1);
         break;
       case "Enter": {
+        // Enter toggles the preview: a second press closes it.
+        if (previewOpen) {
+          event.preventDefault();
+          closePreview();
+          break;
+        }
         const row = currentVisible[focusedIndex];
         if (!row) break;
-        const entry = data?.entries[row.cardIndex];
-        if (entry?.imageUrl) {
+        if (data?.entries[row.cardIndex]?.imageUrl) {
           event.preventDefault();
-          openPreview(entry.name, entry.imageUrl);
+          previewFocusedRow();
         }
         break;
       }
       case "Escape":
-        if (!modalEl.hidden) {
+        if (previewOpen) {
           event.preventDefault();
           closePreview();
+        } else if (setMenuOpen) {
+          event.preventDefault();
+          setSwitcherOpen(false);
         }
         break;
       case "[":
@@ -324,12 +394,44 @@ export function renderChecklist(root: HTMLElement, app: AppState): void {
   window.addEventListener("keydown", activeKeydownHandler);
 }
 
-function tabChipHtml(code: string, index: number, active: boolean, hasCounts: boolean): string {
+/** Dropdown for switching between the selected sets; trigger and options look like set-picker rows. */
+function setSwitcherHtml(app: AppState): string {
+  const codes = app.selectedSetCodes;
+  const multiple = codes.length > 1;
+  const activeCode = codes[app.activeTabIndex];
+
+  const options = codes
+    .map(
+      (code, i) => `
+        <button type="button" class="set-row set-switcher-option ${i === app.activeTabIndex ? "selected" : ""}" data-tab-index="${i}" role="option" aria-selected="${i === app.activeTabIndex}">
+          ${setSummaryHtml(app, code)}
+          ${app.hasAnyCounts(code) ? '<span class="dot" title="Has counts"></span>' : ""}
+        </button>
+      `,
+    )
+    .join("");
+
   return `
-    <button class="chip tab-chip ${active ? "active" : ""}" data-tab-index="${index}">
-      ${escapeHtml(code.toUpperCase())}
-      ${hasCounts && !active ? '<span class="dot"></span>' : ""}
-    </button>
+    <div class="set-switcher ${setMenuOpen && multiple ? "open" : ""}" id="set-switcher">
+      <button type="button" class="set-row set-switcher-btn" id="set-switcher-btn" ${multiple ? `aria-haspopup="listbox" aria-expanded="${setMenuOpen}"` : "disabled"}>
+        ${setSummaryHtml(app, activeCode)}
+        ${multiple ? `<span class="set-switcher-count">${app.activeTabIndex + 1}/${codes.length}</span><span class="set-switcher-caret">${caretDownSvg()}</span>` : ""}
+      </button>
+      ${multiple ? `<div class="set-switcher-menu" role="listbox">${options}</div>` : ""}
+    </div>
+  `;
+}
+
+/** Set icon, name and "CODE · N cards", falling back to just the code if the set list hasn't loaded. */
+function setSummaryHtml(app: AppState, code: string): string {
+  const set = app.allSets.find((s) => s.code === code);
+  const icon = set ? `<img src="${escapeHtml(set.icon_svg_uri)}" alt="" width="24" height="24">` : "";
+  return `
+    <div class="set-icon">${icon}</div>
+    <div class="set-info">
+      <div class="set-name">${escapeHtml(set?.name ?? code.toUpperCase())}</div>
+      <div class="set-meta">${escapeHtml(code.toUpperCase())}${set ? ` · ${set.card_count} cards` : ""}</div>
+    </div>
   `;
 }
 
