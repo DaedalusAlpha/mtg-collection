@@ -7,7 +7,7 @@
   /* Space a header needs at the top. In the iOS home-screen app the page runs under a
      translucent status bar, and iOS blurs content just below it, so clear the bar by an
      extra margin. The inset is 0 in a normal browser tab, so the 22px floor applies there. */
-  --header-top: max(22px, calc(env(safe-area-inset-top) + 14px));
+  --header-top: max(22px, calc(env(safe-area-inset-top) + 6px));
 }
 
 html,
@@ -24,14 +24,13 @@ button {
   font-family: inherit;
 }
 
-#app {
-  height: 100dvh;
-}
-
+/* Pinned to the viewport rather than sized with 100dvh: in the iOS home-screen app,
+   100dvh can come out taller than the visible area, which pushed the footer off-screen. */
 .screen {
+  position: fixed;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  height: 100dvh;
   max-width: 560px;
   margin: 0 auto;
   overflow: hidden;
