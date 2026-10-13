@@ -4,10 +4,10 @@
 
 :root {
   color-scheme: dark;
-  /* Space a header needs at the top. In the iOS home-screen app the page runs under a
-     translucent status bar, and iOS blurs content just below it, so clear the bar by an
-     extra margin. The inset is 0 in a normal browser tab, so the 22px floor applies there. */
-  --header-top: max(22px, calc(env(safe-area-inset-top) + 6px));
+  /* Space a header needs at the top. The iOS home-screen app uses an opaque status bar
+     (see index.html), so the page starts below it and the inset is normally 0; it's kept
+     for any device that still draws the page under a status bar or notch. */
+  --header-top: max(22px, env(safe-area-inset-top));
 }
 
 html,
